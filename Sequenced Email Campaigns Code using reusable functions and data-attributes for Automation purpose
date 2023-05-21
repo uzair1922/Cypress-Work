@@ -1,0 +1,206 @@
+import Emails from ".."
+import { interceptGqlRequest, generateRandomName } from "../../../utils/helpers"
+
+class Drips {
+  parent = null
+
+  constructor({ EMAIL_TYPES }){
+    this.parent = new Emails({ EMAIL_TYPES })
+  }
+
+  verifyAddNewEmailToDripSequence(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'createEmail' })
+        cy.get("[data-attribute='button-drip-add-email']").click({ force: true, waitForAnimations: true })
+        cy.get("[data-attribute='utility-modal-add-new-drip']").should("exist")
+        cy.get("[data-attribute='input-add-new-drip']").type(generateRandomName({ singleWord: true }))
+        cy.get("[data-attribute='button-add-new-drip']").click({ force: true })
+        cy.wait('@createEmail')
+        .its('response.body.data.createEmail.success').should('eq', true)
+      }
+    })
+  }
+
+  verifySettingsModalToggleBehaviour(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'updateDripCampaign' })
+        cy.get("[data-attribute='button-drip-settings']").click({ force: true, waitForAnimations: true })
+        cy.get("[data-attribute='utility-modal-drip-settings']").should("exist")
+        cy.get("[data-attribute='toggle-drip-settings']").click()
+        cy.get("[data-attribute='button-confirm-drip-settings']").click()
+        cy.wait('@updateDripCampaign')
+        .its('response.body.data.updateDripCampaign.success').should('eq', true)
+      }
+    })
+  }
+
+  verifySettingsModalSelectListBehaviour(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'lists' })
+        cy.get("[data-attribute='button-drip-settings']").click({ force: true, waitForAnimations: true })
+        cy.get("[data-attribute='utility-modal-drip-settings']").should("exist")
+
+        cy.wait("@lists")
+        .its('response.body.data.lists').its('length').should('be.gt', 0)
+
+        cy.get("[data-attribute='select-drip-settings']").click()
+        cy.get("[data-attribute='select-drip-settings']").within(() => {
+          cy.get('[class$=-MenuList]').children().eq(4).click()
+        })
+
+        interceptGqlRequest({ alias: 'updateDripCampaign' })
+        cy.get("[data-attribute='button-confirm-drip-settings']").click()
+        cy.wait('@updateDripCampaign')
+        .its('response.body.data.updateDripCampaign.success').should('eq', true)
+      }
+    })
+  }
+
+  verifyEditScheduleTimeModalInputMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'updateEmail' })
+        cy.get("[data-attribute='campaigns-row-drip-edit']").eq(0).click({ force: true, waitForAnimations: true })
+        cy.get("[data-attribute='input-delay-interval']").clear().type("3")
+        cy.get("[data-attribute='button-delay-interval']").click()
+        cy.wait('@updateEmail')
+        .its('response.body.data.updateEmail.success').should('eq', true)
+      }
+    })
+  }
+
+  verifyEditScheduleTimeModalSelectMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'updateEmail' })
+        cy.get("[data-attribute='campaigns-row-drip-edit']").eq(0).click({ force: true, waitForAnimations: true })
+        cy.get("[data-attribute='utility-modal-drip-edit']").should("exist")
+        cy.get("[data-attribute='input-delay-interval']").clear().type("3")
+        cy.get("[data-attribute='select-delay-interval']").click()
+        cy.get("[data-attribute='select-delay-interval']").within(() => {
+          cy.get('[class$=-MenuList]').children().eq(2).click()
+        })
+        cy.get("[data-attribute='button-delay-interval']").click()
+        cy.wait('@updateEmail')
+        .its('response.body.data.updateEmail.success').should('eq', true)
+      }
+    })
+  }
+
+  verifyDeleteDripEmailFromMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'deleteEmail' })
+        cy.get("[data-attribute='dropdown-drip-actions']").children().last().click()
+        cy.get("[data-attribute='dropdown-item-drip-actions-Delete']").click({ force: true, waitForAnimations: true })
+        cy.get("[data-attribute='utility-modal-delete-drip-email']").should('exist')
+        cy.get("[data-attribute='button-delete-drip-email']").click()
+        cy.wait('@deleteEmail')
+        .its('response.body.data.deleteEmail.success').should('eq', true)
+      }
+    })
+  }
+
+  verifyEditDripEmailFromMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'Email' })
+        cy.get("[data-attribute='dropdown-drip-actions']").children().last().click()
+        cy.get("[data-attribute='dropdown-item-drip-actions-Edit']").click()
+        cy.wait('@Email')
+        .its('response.body.data.email')
+        .then(({ id }) => {
+          cy.url().should('include', `/${this.parent.siteId}/drips/${id}/`)
+        })
+      }
+    })
+  }
+
+  verifyReportDripEmailFromMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        cy.get("[data-attribute='dropdown-drip-actions']").children().first().click()
+        cy.get("[data-attribute='dropdown-item-drip-actions-Report']").click()
+        cy.url().should('include', `/sites/${this.parent.siteId}/analytics?drip=`)
+      }
+    })
+  }
+
+  verifyDuplicateDripEmailFromMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'duplicateEmail' })
+        cy.get("[data-attribute='dropdown-drip-actions']").children().first().click()
+        cy.get("[data-attribute='dropdown-item-drip-actions-Duplicate']").click()
+        cy.get("[data-attribute='utility-modal-duplicate-drip-email']").should('exist')
+        cy.get("[data-attribute='button-duplicate-drip-email']").click()
+        cy.wait('@duplicateEmail')
+        .its('response.body.data.duplicateEmail.success').should('eq', true)
+      }
+    })
+  }
+
+  verifyDeactivateDripEmailFromMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'deactivateEmail' })
+        cy.get("[data-attribute='dropdown-drip-actions']").children().eq(0).click()
+        cy.get("[data-attribute='dropdown-item-drip-actions-Deactivate']").click()
+        cy.wait('@deactivateEmail')
+        .its('response.body.data.deactivateEmail.success').should('eq', true)
+      }
+    })
+  }
+
+  verifyActivateRouteDripEmailFromMain(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        cy.get("[data-attribute='dropdown-drip-actions']").children().first().click()
+        cy.get("[data-attribute='dropdown-item-drip-actions-Activate']").click()
+        cy.url().should('include', `/edit/review`)
+      }
+    })
+  }
+
+  verifyEditDripCampaignName(){
+    this.parent.gotoEmailTestCase1({
+      goToDripMain: true,
+      callback: () => {
+        cy.wait(3000)
+        interceptGqlRequest({ alias: 'updateDripCampaign' })
+        cy.get("[data-attribute='icon-campaign-edit-name']").click()
+        cy.get("[data-attribute='input-campaign-edit-name']").type("-updated")
+        cy.get("[data-attribute='tag-campaign-edit-check']").click()
+        cy.wait('@updateDripCampaign')
+        .its('response.body.data.updateDripCampaign.success').should('eq', true)
+      }
+    })
+  }
+}
+
+export default Drips
